@@ -8,32 +8,33 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
 <style>
 :root {
-  --accent: #dc6300;
-  --accent-light: rgba(220, 99, 0, 0.08);
-  --accent-border: rgba(220, 99, 0, 0.25);
+  --accent: #003087;
+  --accent-light: rgba(0, 48, 135, 0.07);
+  --accent-border: rgba(0, 48, 135, 0.25);
   --green: #059669;
   --amber: #D97706;
   --danger: #DC2626;
-  --bg: #FAFAF9;
+  --bg: #F5F6F8;
   --card: #FFFFFF;
-  --text: #2C2C2C;
+  --text: #1A1A2E;
   --muted: #6B6B6B;
-  --border: #E5E5E3;
+  --border: #DDE1E9;
   --radius: 14px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; -webkit-font-smoothing: antialiased; }
 
 /* 헤더 */
-.header { background: white; border-bottom: 4px solid var(--accent); padding: 20px 28px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
-.header-inner { max-width: 760px; margin: 0 auto; }
-.header-tag { display: inline-block; font-size: 11px; font-weight: 800; color: var(--accent); background: var(--accent-light); padding: 4px 12px; border-radius: 20px; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 6px; }
-.header h1 { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
-.header p { font-size: 13px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+.header { background: var(--accent); padding: 20px 28px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 12px rgba(0,48,135,0.18); }
+.header-inner { max-width: 760px; }
+.header-tag { display: inline-block; font-size: 11px; font-weight: 800; color: rgba(255,255,255,0.75); background: rgba(255,255,255,0.12); padding: 4px 12px; border-radius: 20px; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 6px; }
+.header h1 { font-size: 18px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.4px; }
+.header p { font-size: 13px; color: rgba(255,255,255,0.72); margin-top: 2px; font-weight: 500; }
 
 /* 스텝 바 */
 .stepbar { background: white; border-bottom: 1px solid var(--border); display: flex; padding: 0 28px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .stepbar::-webkit-scrollbar { display: none; }
+.stepbar-inner { max-width: 760px; display: flex; }
 .step-item { display: flex; align-items: center; gap: 6px; padding: 12px 0; margin-right: 24px; font-size: 13px; color: var(--muted); white-space: nowrap; border-bottom: 2.5px solid transparent; flex-shrink: 0; font-weight: 600; }
 .step-item.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 800; }
 .step-item.done { color: var(--green); }
@@ -91,7 +92,7 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD G
 .ic-cur { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
 .ic-msg { font-size: 14px; color: var(--text); line-height: 1.6; }
 .ic-suggest { font-size: 12px; color: var(--accent); margin-top: 6px; font-weight: 700; }
-.ic-fix { padding: 12px 16px; background: rgba(255,96,0,0.03); border-top: 1px solid var(--border); }
+.ic-fix { padding: 12px 16px; background: rgba(0,48,135,0.03); border-top: 1px solid var(--border); }
 .fix-label { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.3px; }
 .fix-input { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; background: white; font-family: inherit; }
 .fix-input:focus { border-color: var(--accent); }
@@ -152,7 +153,7 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD G
 .results-table thead th { background: #F5F5F4; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; border-bottom: 1.5px solid var(--border); white-space: nowrap; }
 .row-summary { cursor: pointer; transition: background 0.15s; }
 .row-summary:hover { background: #F5F5F4; }
-.row-summary.expanded { background: rgba(255,96,0,0.04); }
+.row-summary.expanded { background: rgba(0,48,135,0.04); }
 .row-summary td { padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .row-error td:first-child { border-left: 3.5px solid var(--danger); }
 .row-warning td:first-child { border-left: 3.5px solid var(--amber); }
@@ -179,7 +180,7 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD G
 
 /* 디테일 패널 */
 .row-detail td { padding: 0 !important; border-bottom: 1.5px solid var(--border); }
-.detail-panel { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; background: rgba(255,96,0,0.02); }
+.detail-panel { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; background: rgba(0,48,135,0.02); }
 .detail-issue { background: white; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; }
 .detail-issue.error { border-left: 4px solid var(--danger); }
 .detail-issue.warning { border-left: 4px solid var(--amber); }
@@ -192,7 +193,7 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD G
 .di-body { padding: 10px 14px; font-size: 14px; line-height: 1.6; color: var(--text); }
 .di-cur { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
 .di-suggest { font-size: 12px; color: var(--accent); font-weight: 700; margin-top: 6px; }
-.di-fix { padding: 10px 14px; background: rgba(255,96,0,0.03); border-top: 1px solid var(--border); }
+.di-fix { padding: 10px 14px; background: rgba(0,48,135,0.03); border-top: 1px solid var(--border); }
 .di-no-fix { padding: 10px 14px; font-size: 13px; color: var(--muted); font-style: italic; border-top: 1px solid var(--border); }
 .batch-label { font-size: 12px; color: var(--accent); font-weight: 700; margin-top: 6px; }
 
@@ -217,9 +218,11 @@ body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD G
 </div>
 
 <div class="stepbar">
-  <div class="step-item active" id="si1"><div class="step-num"><span class="n">1</span></div>파일 업로드</div>
-  <div class="step-item" id="si2"><div class="step-num"><span class="n">2</span></div>검증 결과</div>
-  <div class="step-item" id="si3"><div class="step-num"><span class="n">3</span></div>다운로드 완료</div>
+  <div class="stepbar-inner">
+    <div class="step-item active" id="si1"><div class="step-num"><span class="n">1</span></div>파일 업로드</div>
+    <div class="step-item" id="si2"><div class="step-num"><span class="n">2</span></div>검증 결과</div>
+    <div class="step-item" id="si3"><div class="step-num"><span class="n">3</span></div>다운로드 완료</div>
+  </div>
 </div>
 
 <div class="main">
