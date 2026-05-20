@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>KOS 상품등록 검토 도우미</title>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+<style>
+:root {
+  --accent: #dc6300;
+  --accent-light: rgba(220, 99, 0, 0.08);
+  --accent-border: rgba(220, 99, 0, 0.25);
+  --green: #059669;
+  --amber: #D97706;
+  --danger: #DC2626;
+  --bg: #FAFAF9;
+  --card: #FFFFFF;
+  --text: #2C2C2C;
+  --muted: #6B6B6B;
+  --border: #E5E5E3;
+  --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 15px; -webkit-font-smoothing: antialiased; }
+
+/* 헤더 */
+.header { background: white; border-bottom: 4px solid var(--accent); padding: 20px 28px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+.header-inner { max-width: 760px; margin: 0 auto; }
+.header-tag { display: inline-block; font-size: 11px; font-weight: 800; color: var(--accent); background: var(--accent-light); padding: 4px 12px; border-radius: 20px; letter-spacing: 1.2px; text-transform: uppercase; margin-bottom: 6px; }
+.header h1 { font-size: 18px; font-weight: 800; color: var(--text); letter-spacing: -0.4px; }
+.header p { font-size: 13px; color: var(--muted); margin-top: 2px; font-weight: 500; }
+
+/* 스텝 바 */
+.stepbar { background: white; border-bottom: 1px solid var(--border); display: flex; padding: 0 28px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.stepbar::-webkit-scrollbar { display: none; }
+.step-item { display: flex; align-items: center; gap: 6px; padding: 12px 0; margin-right: 24px; font-size: 13px; color: var(--muted); white-space: nowrap; border-bottom: 2.5px solid transparent; flex-shrink: 0; font-weight: 600; }
+.step-item.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 800; }
+.step-item.done { color: var(--green); }
+.step-num { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid currentColor; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; flex-shrink: 0; }
+.step-item.active .step-num, .step-item.done .step-num { background: currentColor; color: white; border-color: currentColor; }
+.step-item.done .step-num::after { content: '✓'; }
+.step-item.done .step-num .n { display: none; }
+
+/* 메인 */
+.main { padding: 28px 20px 120px; max-width: 760px; margin: 0 auto; }
+.main.main-wide { max-width: none; padding-left: 24px; padding-right: 24px; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* 카드 */
+.card { background: var(--card); border-radius: var(--radius); padding: 28px 26px; margin-bottom: 16px; border: 1.5px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+.card-title { font-size: 19px; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.3px; }
+.card-sub { font-size: 14.5px; color: var(--muted); line-height: 1.65; }
+
+/* 드롭존 */
+.dropzone { border: 2px dashed var(--border); border-radius: 12px; padding: 56px 20px; text-align: center; cursor: pointer; transition: all 0.2s; margin-top: 22px; background: var(--bg); }
+.dropzone.over { border-color: var(--accent); background: var(--accent-light); }
+.dropzone-icon { font-size: 44px; margin-bottom: 14px; }
+.dropzone-label { font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.dropzone-hint { font-size: 13px; color: var(--muted); }
+.file-btn { display: inline-block; margin-top: 16px; padding: 11px 24px; background: var(--accent); color: white; border-radius: 8px; font-size: 14px; font-weight: 700; letter-spacing: -0.2px; cursor: pointer; }
+
+/* 로딩 */
+.loading { text-align: center; padding: 52px 20px; }
+.spinner { width: 44px; height: 44px; border: 4px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 20px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.loading-sub { font-size: 14px; color: var(--muted); }
+
+/* 요약 */
+.summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 22px; }
+.badge { padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 700; }
+.b-error { background: #FEE2E2; color: #DC2626; }
+.b-warning { background: #FEF3C7; color: #D97706; }
+.b-pass { background: #D1FAE5; color: #059669; }
+.b-total { background: #F5F5F4; color: #6B6B6B; }
+
+/* 이슈 카드 */
+.issue-card { border: 1.5px solid var(--border); border-radius: 12px; margin-bottom: 12px; overflow: hidden; transition: box-shadow 0.2s; }
+.issue-card.error { border-left: 4px solid var(--danger); }
+.issue-card.warning { border-left: 4px solid var(--amber); }
+.ic-head { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #FAFAF9; flex-wrap: wrap; }
+.ic-row { font-size: 12px; font-weight: 800; background: #F5F5F4; padding: 3px 9px; border-radius: 10px; color: var(--text); }
+.ic-sev { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 10px; }
+.ic-sev.error { background: var(--danger); color: white; }
+.ic-sev.warning { background: var(--amber); color: white; }
+.ic-col { font-size: 13px; font-weight: 600; color: var(--text); }
+.ic-rule { font-size: 11px; color: #AAAAAA; margin-left: auto; font-weight: 600; }
+.ic-body { padding: 14px 16px; }
+.ic-cur { font-size: 12px; color: var(--muted); margin-bottom: 5px; }
+.ic-msg { font-size: 14px; color: var(--text); line-height: 1.6; }
+.ic-suggest { font-size: 12px; color: var(--accent); margin-top: 6px; font-weight: 700; }
+.ic-fix { padding: 12px 16px; background: rgba(255,96,0,0.03); border-top: 1px solid var(--border); }
+.fix-label { font-size: 12px; font-weight: 700; color: var(--muted); margin-bottom: 6px; letter-spacing: 0.3px; }
+.fix-input { width: 100%; padding: 11px 13px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 16px; outline: none; background: white; font-family: inherit; }
+.fix-input:focus { border-color: var(--accent); }
+.fix-input.filled { border-color: var(--accent-border); background: var(--accent-light); }
+.no-fix-note { font-size: 13px; color: var(--muted); font-style: italic; }
+
+/* 통과 요약 */
+.pass-summary { background: #F0FDF4; border: 1.5px solid #BBF7D0; border-radius: 12px; padding: 14px 16px; font-size: 14px; color: var(--green); font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+
+/* 전체 통과 */
+.all-pass { text-align: center; padding: 44px 20px; }
+.all-pass-icon { font-size: 56px; margin-bottom: 16px; }
+.all-pass-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.3px; }
+.all-pass-sub { font-size: 14.5px; color: var(--muted); }
+
+/* 경고 배너 */
+.critical-banner { background: #FEF2F2; border: 1.5px solid #FECACA; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }
+.critical-banner h3 { font-size: 15px; font-weight: 800; color: var(--danger); margin-bottom: 6px; }
+.critical-banner p { font-size: 14px; color: #7F1D1D; line-height: 1.65; }
+
+/* 에러 알림 */
+.alert { padding: 12px 16px; border-radius: 10px; font-size: 14px; margin-top: 12px; }
+.alert-error { background: #FEF2F2; color: var(--danger); border: 1.5px solid #FECACA; }
+
+/* 하단 액션 바 */
+.action-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; border-top: 1px solid var(--border); padding: 12px 20px; z-index: 50; box-shadow: 0 -4px 16px rgba(0,0,0,0.06); }
+.action-bar-inner { max-width: 760px; margin: 0 auto; display: flex; gap: 10px; }
+.btn { padding: 14px 20px; border-radius: 10px; font-size: 15px; font-weight: 700; border: none; cursor: pointer; flex: 1; text-align: center; min-height: 52px; transition: opacity 0.15s, transform 0.1s; font-family: inherit; letter-spacing: -0.2px; }
+.btn:active { opacity: 0.85; transform: scale(0.98); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: white; }
+.btn-success { background: var(--green); color: white; }
+.btn-outline { background: white; color: var(--text); border: 1.5px solid var(--border); flex: 0.6; }
+
+/* 완료 화면 */
+.done-wrap { text-align: center; padding: 32px 0 16px; }
+.done-icon { font-size: 64px; margin-bottom: 16px; }
+.done-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.3px; }
+.done-sub { font-size: 14.5px; color: var(--muted); line-height: 1.65; margin-bottom: 28px; }
+.done-steps { text-align: left; background: var(--bg); border-radius: 12px; overflow: hidden; margin-bottom: 24px; border: 1.5px solid var(--border); }
+.done-step { display: flex; align-items: flex-start; gap: 14px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.done-step:last-child { border-bottom: none; }
+.done-step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+.done-step-text { font-size: 14.5px; line-height: 1.6; color: var(--text); }
+.done-step-text strong { color: var(--text); font-weight: 700; }
+
+/* 결과 헤더 */
+.results-header { background: var(--card); border-radius: var(--radius); padding: 22px 26px 18px; margin-bottom: 14px; border: 1.5px solid var(--border); box-shadow: 0 2px 10px rgba(0,0,0,0.04); }
+.results-title { font-size: 19px; font-weight: 700; margin-bottom: 12px; letter-spacing: -0.3px; }
+
+/* 결과 테이블 */
+.results-table-wrap { overflow-x: auto; border-radius: 12px; border: 1.5px solid var(--border); margin-top: 4px; }
+.section-divider-row td { padding: 8px 16px; font-size: 12px; font-weight: 800; letter-spacing: 0.6px; border-bottom: 1px solid var(--border); }
+.section-divider-row.error td { background: #FEF2F2; color: var(--danger); border-left: 3.5px solid var(--danger); }
+.section-divider-row.warning td { background: #FFFBEB; color: var(--amber); border-left: 3.5px solid var(--amber); }
+.section-divider-row.pass td { background: #F0FDF4; color: var(--green); border-left: 3.5px solid var(--green); }
+.results-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.results-table thead th { background: #F5F5F4; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 800; color: var(--muted); letter-spacing: 0.8px; text-transform: uppercase; border-bottom: 1.5px solid var(--border); white-space: nowrap; }
+.row-summary { cursor: pointer; transition: background 0.15s; }
+.row-summary:hover { background: #F5F5F4; }
+.row-summary.expanded { background: rgba(255,96,0,0.04); }
+.row-summary td { padding: 13px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.row-error td:first-child { border-left: 3.5px solid var(--danger); }
+.row-warning td:first-child { border-left: 3.5px solid var(--amber); }
+.row-pass td { background: #F9FFF9; border-bottom: 1px solid var(--border); padding: 11px 14px; vertical-align: middle; }
+.row-pass td:first-child { border-left: 3.5px solid var(--green); }
+.col-rownum { width: 44px; font-weight: 700; color: var(--muted); font-size: 13px; text-align: center; }
+.col-status { width: 32px; text-align: center; }
+.col-product { max-width: 200px; }
+.col-vendor { max-width: 140px; }
+.col-year { width: 90px; white-space: nowrap; }
+.col-issues { min-width: 180px; }
+.cell-val { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cell-err { color: var(--danger); font-weight: 600; }
+.cell-warn { color: var(--amber); font-weight: 600; }
+.sev-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.sev-dot.error { background: var(--danger); }
+.sev-dot.warning { background: var(--amber); }
+.issue-chip { display: inline-block; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 10px; margin-right: 4px; }
+.issue-chip.error { background: #FEE2E2; color: var(--danger); }
+.issue-chip.warning { background: #FEF3C7; color: var(--amber); }
+.issue-col-list { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.expand-icon { font-size: 13px; color: var(--muted); transition: transform 0.2s; display: inline-block; flex-shrink: 0; }
+.row-summary.expanded .expand-icon { transform: rotate(180deg); }
+
+/* 디테일 패널 */
+.row-detail td { padding: 0 !important; border-bottom: 1.5px solid var(--border); }
+.detail-panel { padding: 14px 18px; display: flex; flex-direction: column; gap: 10px; background: rgba(255,96,0,0.02); }
+.detail-issue { background: white; border: 1.5px solid var(--border); border-radius: 10px; overflow: hidden; }
+.detail-issue.error { border-left: 4px solid var(--danger); }
+.detail-issue.warning { border-left: 4px solid var(--amber); }
+.di-header { display: flex; align-items: center; gap: 8px; padding: 8px 14px; background: #FAFAF9; flex-wrap: wrap; }
+.di-sev { font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 10px; }
+.di-sev.error { background: var(--danger); color: white; }
+.di-sev.warning { background: var(--amber); color: white; }
+.di-col { font-size: 13px; font-weight: 700; color: var(--text); }
+.di-rule { font-size: 11px; color: #AAAAAA; margin-left: auto; font-weight: 600; }
+.di-body { padding: 10px 14px; font-size: 14px; line-height: 1.6; color: var(--text); }
+.di-cur { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.di-suggest { font-size: 12px; color: var(--accent); font-weight: 700; margin-top: 6px; }
+.di-fix { padding: 10px 14px; background: rgba(255,96,0,0.03); border-top: 1px solid var(--border); }
+.di-no-fix { padding: 10px 14px; font-size: 13px; color: var(--muted); font-style: italic; border-top: 1px solid var(--border); }
+.batch-label { font-size: 12px; color: var(--accent); font-weight: 700; margin-top: 6px; }
+
+@media (min-width: 600px) {
+  .main:not(.main-wide) { padding: 36px 28px 120px; }
+  .main-wide { padding: 28px 32px 120px; }
+  .card { padding: 36px 32px; }
+  .action-bar-inner { justify-content: flex-end; }
+  .btn { flex: none; min-width: 160px; }
+  .btn-outline { flex: none; min-width: 120px; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-tag">KT 정보보안서비스</div>
+    <h1>KOS 상품등록 검토 도우미</h1>
+    <p>협력사 엑셀 · 15가지 규칙 자동 검증</p>
+  </div>
+</div>
+
+<div class="stepbar">
+  <div class="step-item active" id="si1"><div class="step-num"><span class="n">1</span></div>파일 업로드</div>
+  <div class="step-item" id="si2"><div class="step-num"><span class="n">2</span></div>검증 결과</div>
+  <div class="step-item" id="si3"><div class="step-num"><span class="n">3</span></div>다운로드 완료</div>
+</div>
+
+<div class="main">
+
+  <!-- 화면 1: 업로드 -->
+  <div class="screen active" id="s-upload">
+    <div class="card">
+      <div class="card-title">엑셀 파일을 업로드하세요</div>
+      <div class="card-sub">KOS 등록 양식(.xlsx)을 업로드하면 15가지 규칙으로 자동 검증합니다.<br>오류가 있으면 항목별로 수정 방법을 안내하고, 수정된 파일을 다운로드할 수 있습니다.</div>
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-icon">📂</div>
+        <div class="dropzone-label">파일을 끌어다 놓거나 아래 버튼을 눌러 선택하세요</div>
+        <div class="dropzone-hint">.xlsx 파일만 허용</div>
+        <label class="file-btn">📎 파일 선택<input type="file" id="fileInput" accept=".xlsx" style="display:none"></label>
+      </div>
+      <div id="upload-error" class="alert alert-error" style="display:none"></div>
+    </div>
+  </div>
+
+  <!-- 화면 2: 로딩 -->
+  <div class="screen" id="s-loading">
+    <div class="card">
+      <div class="loading">
+        <div class="spinner"></div>
+        <div class="loading-title">검증 중...</div>
+        <div class="loading-sub">15가지 규칙을 적용하여 파일을 분석하고 있습니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 화면 3: 결과 -->
+  <div class="screen" id="s-results">
+    <div id="critical-area"></div>
+    <div class="results-header">
+      <div class="results-title">검증 결과</div>
+      <div class="summary" id="summary-bar"></div>
+    </div>
+    <div id="results-area"></div>
+  </div>
+
+  <!-- 화면 4: 완료 -->
+  <div class="screen" id="s-done">
+    <div class="card">
+      <div class="done-wrap">
+        <div class="done-icon">✅</div>
+        <div class="done-title">다운로드 완료</div>
+        <div class="done-sub">수정된 파일이 다운로드되었습니다.<br>아래 순서대로 비즈스퀘어에 제출해 주세요.</div>
+        <div class="done-steps">
+          <div class="done-step">
+            <div class="done-step-num">1</div>
+            <div class="done-step-text"><strong>비즈스퀘어</strong>에 접속하세요</div>
+          </div>
+          <div class="done-step">
+            <div class="done-step-num">2</div>
+            <div class="done-step-text"><strong>상품등록 요청</strong> 메뉴로 이동하세요</div>
+          </div>
+          <div class="done-step">
+            <div class="done-step-num">3</div>
+            <div class="done-step-text">방금 다운로드한 <strong>KOS_등록양식_수정완료.xlsx</strong> 파일을 업로드하여 제출하세요</div>
+          </div>
+        </div>
+        <button class="btn btn-outline" style="width:100%;max-width:280px;" onclick="restart()">새 파일 검증하기</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 하단 액션 바 -->
+<div class="action-bar" id="action-bar" style="display:none">
+  <div class="action-bar-inner" id="action-inner"></div>
+</div>
+
+<script>
+// ===================== 상수 =====================
+const VENDOR_MAP = {
+  "(보안)_케이티이엔지코어 전용": "(주)케이티이엔지코어",
+  "(보안)_진인프라 전용": "진인프라",
+  "(보안)_에티버스 전용": "에티버스",
+  "(보안)_위드네트웍스 전용": "(주)위드네트웍스",
+  "(보안)_굿링크 전용": "굿링크(보안-부산)",
+  "(보안)_네트아이티전용": "네트아이티(보안-대구)",
+  "(보안)_대진정보기술 전용": "대진정보기술(보안-전남)",
+  "(보안)_대형웍스 전용": "대형웍스(보안-부산)",
+  "(보안)_델타링크 전용": "델타링크(보안)",
+  "(보안)_광무 전용": "광무(보안)",
+  "(보안)_신한시스템즈 전용": "신한시스템즈(보안-전남)",
+  "(보안)_태광네트웍정보 전용": "태광네트웍정보(보안)",
+  "(보안)_택셀네트컴 전용": "텍셀네트컴(보안-충청)",
+  "(보안)_얼라이드시스템 전용": "얼라이드시스템",
+  "(보안)_에스티솔루션 전용": "에스티솔루션",
+  "(보안)_지엔텔 전용": "지엔텔(보안)",
+  "(보안)_에릭슨엘지 전용": "에릭슨엘지(보안)",
+  "(보안)_케이티서비스북부 전용": "케이티서비스북부(보안)"
+};
+const VALID_YEARS = ["무약정","반납-1년","반납-2년","반납-3년","완불-1년","완불-2년","완불-3년","완불-4년","완불-5년"];
+const VALID_MAINT = ["제외","포함","기타"];
+const VALID_SVCNUM = ["필수","필수아님"];
+
+// ===================== 상태 =====================
+let originalBuffer = null;
+let sheetData = null;
+let ci = null; // column index map
+let accumulated = {}; // {sheetRowIdx: {colIdx: newValue}}
+let lastResults = null;
+
+// ===================== 유틸 =====================
+function esc(s) {
+  return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function cv(row, key) {
+  const idx = ci[key];
+  if (idx === undefined || idx < 0) return '';
+  const v = row[idx];
+  if (v === null || v === undefined) return '';
+  const s = String(v).trim();
+  return s === '-' ? '' : s;
+}
+function isNumericVal(s) {
+  if (!s || s === '-') return true;
+  return /^\d+(\.\d+)?$/.test(s);
+}
+function isRowEmpty(row) {
+  const keys = ['productId','vendor','category','productName','supplier','baseYear','optionId','spec'];
+  return keys.every(k => !cv(row, k));
+}
+function expectedLease(y) {
+  if (y === '무약정') return '리스제외';
+  if (y.startsWith('반납')) return 'AJ네트웍스';
+  if (y.startsWith('완불')) return 'KT커머스';
+  return '';
+}
+function validProductName(name) {
+  return /\s한정$/.test(name) && /^\[보안/.test(name);
+}
+function cleanNumber(s) {
+  return s.replace(/[,원%\s]/g, '').replace(/[^0-9.]/g, '');
+}
+
+// ===================== 컬럼 인덱스 빌드 =====================
+function buildCI(headers) {
+  const find = (...ps) => {
+    for (const p of ps) {
+      const i = headers.findIndex(h => h && String(h).includes(p));
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  return {
+    productId: find('제품고유번호'),
+    vendor: find('벤더사'),
+    category: find('제품카테고리'),
+    productName: find('제품명'),
+    supplier: find('공급사명'),
+    leaseName: find('리스사명'),
+    baseYear: find('기본연도'),
+    installFee: find('설치비'),
+    serviceNum: find('서비스번호 입력 여부'),
+    optionId: find('옵션고유번호'),
+    spec: find('품명 및 스펙'),
+    saleCost: find('판매형 공급가'),
+    saleMaintCost: find('판매형 유지보수 원가'),
+    salePrice: find('판매형 판매가'),
+    rc1: find('공급원가 1년'), rc2: find('공급원가 2년'), rc3: find('공급원가 3년'),
+    rc4: find('공급원가 4년'), rc5: find('공급원가 5년'),
+    fs1: find('완불 서비스-1년'), fs2: find('완불 서비스-2년'), fs3: find('완불 서비스-3년'),
+    fs4: find('완불 서비스-4년'), fs5: find('완불 서비스-5년'),
+    rs1: find('반납 서비스-1년'), rs2: find('반납 서비스-2년'), rs3: find('반납 서비스-3년'),
+    ucSettle: find('무약정 정산'), ucPrice: find('무약정 서비스가'),
+    maintRate: find('유지보수율'), maintSettle: find('유지보수정산'),
+    maintNote: find('유지보수정산내용')
+  };
+}
+
+// ===================== 검증 =====================
+function validate() {
+  const headers = sheetData[0];
+  const totalCols = headers.filter(h => h).length;
+
+  // 규칙 15: 양식 구조
+  if (headers.length < 63) {
+    return { critical: `양식 열이 ${headers.length}개입니다 (기준: 63개). 열이 삭제된 것으로 보입니다. 원본 KOS 등록 양식을 새로 받아서 처음부터 다시 작성해 주세요.`, rows: [], summary: { total: 0, errors: 0, warnings: 0, passes: 0 } };
+  }
+
+  const allRows = [];
+
+  // 규칙 8: 빈 행 감지 (데이터 영역 내)
+  let firstData = -1, lastData = -1;
+  for (let i = 1; i < sheetData.length; i++) {
+    if (!isRowEmpty(sheetData[i])) {
+      if (firstData < 0) firstData = i;
+      lastData = i;
+    }
+  }
+  const emptyBetween = [];
+  if (firstData >= 0) {
+    for (let i = firstData; i <= lastData; i++) {
+      if (isRowEmpty(sheetData[i])) emptyBetween.push(i);
+    }
+  }
+  emptyBetween.forEach(si => {
+    allRows.push({ rowNum: si + 1, si, issues: [{ rule: 8, col: '(전체)', ci: -1, cur: '(빈 행)', msg: '빈 행이 데이터 중간에 있습니다. KOS에 빈 상품이 생성되므로 삭제해주세요.', sug: null, fixable: false, sev: 'error' }] });
+  });
+
+  // 데이터 행 추출
+  const dataRows = [];
+  for (let i = 1; i < sheetData.length; i++) {
+    if (!isRowEmpty(sheetData[i])) dataRows.push({ row: sheetData[i], si: i, rowNum: i + 1 });
+  }
+
+  // 제품 그룹 빌드 (규칙 10, 11용)
+  const productGroups = {};
+  dataRows.forEach(({ row, si, rowNum }) => {
+    const pid = cv(row, 'productId');
+    if (!pid) return;
+    if (!productGroups[pid]) productGroups[pid] = [];
+    productGroups[pid].push({ row, si, rowNum });
+  });
+
+  // 행별 이슈 수집
+  const rowIssueMap = {};
+  dataRows.forEach(({ row, si, rowNum }) => {
+    const issues = [];
+
+    const vendor = cv(row, 'vendor');
+    const supplier = cv(row, 'supplier');
+    const leaseName = cv(row, 'leaseName');
+    const baseYear = cv(row, 'baseYear');
+    const category = cv(row, 'category');
+    const productName = cv(row, 'productName');
+    const installFee = cv(row, 'installFee');
+    const serviceNum = cv(row, 'serviceNum');
+    const maintSettle = cv(row, 'maintSettle');
+    const maintRate = cv(row, 'maintRate');
+
+    const isCP = category.includes('CarePack') || category.startsWith('05.');
+    const isSale = baseYear === '무약정' && !isCP;
+    const isUCSvc = baseYear === '무약정' && isCP;
+    const retM = baseYear.match(/^반납-(\d)년$/);
+    const fullM = baseYear.match(/^완불-(\d)년$/);
+    const retN = retM ? parseInt(retM[1]) : null;
+    const fullN = fullM ? parseInt(fullM[1]) : null;
+    const isRental = retN || fullN;
+
+    // 규칙 1: 벤더사↔공급사명
+    if (vendor) {
+      const exp = VENDOR_MAP[vendor];
+      if (exp === undefined) {
+        issues.push({ rule: 1, col: '벤더사', ci: ci.vendor, cur: vendor, msg: `'${vendor}'는 허용되지 않는 벤더사입니다.`, sug: null, fixable: true, sev: 'error' });
+      } else if (supplier !== exp) {
+        issues.push({ rule: 1, col: '공급사명', ci: ci.supplier, cur: supplier, msg: `벤더사 '${vendor}'의 공급사명은 '${exp}'이어야 합니다.`, sug: exp, fixable: true, sev: 'error' });
+      }
+    }
+
+    // 규칙 2: 기본연도
+    if (baseYear && !VALID_YEARS.includes(baseYear)) {
+      issues.push({ rule: 2, col: '기본연도', ci: ci.baseYear, cur: baseYear, msg: `'${baseYear}'는 허용되지 않는 값입니다. 무약정·반납-1~3년·완불-1~5년 중 하나를 입력하세요.`, sug: null, fixable: true, sev: 'error' });
+    }
+
+    // 규칙 3: 기본연도→리스사명
+    if (baseYear && VALID_YEARS.includes(baseYear)) {
+      const expLease = expectedLease(baseYear);
+      if (expLease && leaseName !== expLease) {
+        issues.push({ rule: 3, col: '리스사명', ci: ci.leaseName, cur: leaseName, msg: `기본연도 '${baseYear}'이면 리스사명은 '${expLease}'이어야 합니다.`, sug: expLease, fixable: true, sev: 'error' });
+      }
+    }
+
+    // 규칙 5: 제품명 형식
+    if (productName && !validProductName(productName)) {
+      issues.push({ rule: 5, col: '제품명', ci: ci.productName, cur: productName, msg: `제품명이 형식에 맞지 않습니다. '[보안] 제품명(약정기간) - 고객사명 한정' 형식으로 끝이 반드시 '한정'이어야 합니다.`, sug: null, fixable: true, sev: 'error' });
+    }
+
+    // 규칙 6: 숫자 필드
+    const numFields = [
+      ['installFee','설치비'], ['saleCost','판매형 공급가'], ['saleMaintCost','판매형 유지보수 원가'],
+      ['salePrice','판매형 판매가'], ['rc1','임대형 공급원가 1년'], ['rc2','임대형 공급원가 2년'],
+      ['rc3','임대형 공급원가 3년'], ['rc4','임대형 공급원가 4년'], ['rc5','임대형 공급원가 5년'],
+      ['fs1','임대형-완불 서비스-1년'], ['fs2','임대형-완불 서비스-2년'], ['fs3','임대형-완불 서비스-3년'],
+      ['fs4','임대형-완불 서비스-4년'], ['fs5','임대형-완불 서비스-5년'],
+      ['rs1','임대형-반납 서비스-1년'], ['rs2','임대형-반납 서비스-2년'], ['rs3','임대형-반납 서비스-3년'],
+      ['ucSettle','임대형-무약정 정산'], ['ucPrice','임대형-무약정 서비스가'], ['maintRate','유지보수율(%)']
+    ];
+    numFields.forEach(([key, name]) => {
+      const val = cv(row, key);
+      if (val && !isNumericVal(val)) {
+        const cleaned = cleanNumber(val);
+        issues.push({ rule: 6, col: name, ci: ci[key], cur: val, msg: `'${name}'에는 숫자만 입력해야 합니다. %, 원, 쉼표 등은 사용할 수 없습니다.`, sug: cleaned || null, fixable: true, sev: 'error' });
+      }
+    });
+
+    // 규칙 7: 고정 선택값
+    if (serviceNum && !VALID_SVCNUM.includes(serviceNum)) {
+      issues.push({ rule: 7, col: '수량 별 서비스번호 입력 여부', ci: ci.serviceNum, cur: serviceNum, msg: `'${serviceNum}'는 허용되지 않습니다. '필수' 또는 '필수아님'만 입력 가능합니다.`, sug: null, fixable: true, sev: 'error' });
+    }
+    if (!maintSettle) {
+      issues.push({ rule: 7, col: '유지보수정산', ci: ci.maintSettle, cur: '(비어있음)', msg: `'유지보수정산'은 필수 입력입니다. '제외', '포함', '기타' 중 하나를 선택하세요.`, sug: isSale ? '제외' : null, fixable: true, sev: 'error' });
+    } else if (!VALID_MAINT.includes(maintSettle)) {
+      issues.push({ rule: 7, col: '유지보수정산', ci: ci.maintSettle, cur: maintSettle, msg: `'${maintSettle}'는 허용되지 않습니다. '제외', '포함', '기타' 중 하나를 입력하세요.`, sug: null, fixable: true, sev: 'error' });
+    } else if (isSale && maintSettle !== '제외') {
+      issues.push({ rule: 7, col: '유지보수정산', ci: ci.maintSettle, cur: maintSettle, msg: `판매형(무약정+비CarePack)은 유지보수정산이 반드시 '제외'이어야 합니다.`, sug: '제외', fixable: true, sev: 'error' });
+    }
+
+    // 규칙 4: 가격 칸 연계 (기본연도가 유효할 때만)
+    if (baseYear && VALID_YEARS.includes(baseYear)) {
+      if (isSale) {
+        if (!cv(row, 'saleCost')) issues.push({ rule: 4, col: '판매형 공급가', ci: ci.saleCost, cur: '(비어있음)', msg: `판매형에서 '판매형 공급가'는 필수 입력입니다.`, sug: null, fixable: true, sev: 'error' });
+        if (!cv(row, 'salePrice')) issues.push({ rule: 4, col: '판매형 판매가', ci: ci.salePrice, cur: '(비어있음)', msg: `판매형에서 '판매형 판매가'는 필수 입력입니다.`, sug: null, fixable: true, sev: 'error' });
+      }
+      if (isUCSvc) {
+        if (!cv(row, 'ucSettle')) issues.push({ rule: 4, col: '임대형-무약정 정산', ci: ci.ucSettle, cur: '(비어있음)', msg: `무약정 서비스형(무약정+CarePack)에서 '임대형-무약정 정산'은 필수 입력입니다.`, sug: null, fixable: true, sev: 'error' });
+        if (!cv(row, 'ucPrice')) issues.push({ rule: 4, col: '임대형-무약정 서비스가', ci: ci.ucPrice, cur: '(비어있음)', msg: `무약정 서비스형에서 '임대형-무약정 서비스가'는 필수 입력입니다.`, sug: null, fixable: true, sev: 'error' });
+      }
+      if (retN) {
+        if (!cv(row, `rc${retN}`)) issues.push({ rule: 4, col: `임대형 공급원가 ${retN}년`, ci: ci[`rc${retN}`], cur: '(비어있음)', msg: `반납-${retN}년에서 '임대형 공급원가 ${retN}년'은 필수 입력입니다.`, sug: null, fixable: true, sev: 'error' });
+        if (retN <= 3 && !cv(row, `rs${retN}`)) issues.push({ rule: 4, col: `임대형-반납 서비스-${retN}년`, ci: ci[`rs${retN}`], cur: '(비어있음)', msg: `반납-${retN}년에서 '임대형-반납 서비스-${retN}년'은 필수 입력입니다.`, sug: null, fixable: true, sev: 'error' });
+      }
+      if (fullN) {
+        if (!cv(row, `rc${fullN}`)) issues.push({ rule: 4, col: `임대형 공급원가 ${fullN}년`, ci: ci[`rc${fullN}`], cur: '(비어있음)', msg: `완불-${fullN}년에서 '임대형 공급원가 ${fullN}년'은 필수 입력입니다.`, sug: null, fixable: true, sev: 'error' });
+        if (!cv(row, `fs${fullN}`)) issues.push({ rule: 4, col: `임대형-완불 서비스-${fullN}년`, ci: ci[`fs${fullN}`], cur: '(비어있음)', msg: `완불-${fullN}년에서 '임대형-완불 서비스-${fullN}년'은 필수 입력입니다.`, sug: null, fixable: true, sev: 'error' });
+      }
+    }
+
+    // 규칙 9: 수량별 서비스번호 (항상 확인요청)
+    if (serviceNum) {
+      issues.push({ rule: 9, col: '수량 별 서비스번호 입력 여부', ci: ci.serviceNum, cur: serviceNum, msg: `현재 값: '${serviceNum}'. 사업 특성에 맞게 선택되었는지 담당자 확인이 필요합니다.`, sug: null, fixable: false, sev: 'warning' });
+    }
+
+    // 규칙 12: 판매형 유지보수율 비워야 함
+    if (isSale && maintRate) {
+      issues.push({ rule: 12, col: '유지보수율(%)', ci: ci.maintRate, cur: maintRate, msg: `판매형(무약정+비CarePack)은 '유지보수율(%)'을 비워야 합니다.`, sug: '', fixable: true, sev: 'error' });
+    }
+
+    // 규칙 13: 설치비 누락 (비CarePack)
+    if (!isCP && !installFee) {
+      issues.push({ rule: 13, col: '설치비', ci: ci.installFee, cur: '(비어있음)', msg: `비CarePack 상품에 설치비가 없습니다. 원가 포함 여부·누락·면제 여부를 담당자가 확인해야 합니다.`, sug: null, fixable: false, sev: 'warning' });
+    }
+
+    // 규칙 14: 임대형 유지보수율 통상 10%
+    if (isRental && !isCP && maintRate && maintRate !== '10') {
+      issues.push({ rule: 14, col: '유지보수율(%)', ci: ci.maintRate, cur: maintRate, msg: `임대형 비CarePack의 유지보수율(%)은 통상 10%입니다. '${maintRate}'이면 담당자 확인이 필요합니다.`, sug: null, fixable: false, sev: 'warning' });
+    }
+
+    rowIssueMap[si] = issues;
+  });
+
+  // 규칙 10: 제품/옵션 구조 일관성
+  Object.entries(productGroups).forEach(([pid, rows]) => {
+    if (rows.length <= 1) return;
+    const ref = rows[0];
+    const checkFields = [
+      ['productName','제품명'], ['vendor','벤더사'], ['supplier','공급사명'],
+      ['leaseName','리스사명'], ['baseYear','기본연도']
+    ];
+    rows.slice(1).forEach(({ row, si }) => {
+      checkFields.forEach(([key, name]) => {
+        const refVal = cv(ref.row, key);
+        const curVal = cv(row, key);
+        if (refVal && curVal && refVal !== curVal) {
+          if (!rowIssueMap[si]) rowIssueMap[si] = [];
+          rowIssueMap[si].push({ rule: 10, col: name, ci: ci[key], cur: curVal, msg: `제품고유번호 '${pid}' 내에서 '${name}'은 모든 행이 동일해야 합니다. (기준값: '${refVal}')`, sug: refVal, fixable: true, sev: 'error' });
+        }
+      });
+    });
+  });
+
+  // 규칙 11: CarePack 단일 등록
+  const cpByProduct = {};
+  const cpAllRows = [];
+  dataRows.forEach(({ row, si, rowNum }) => {
+    const cat = cv(row, 'category');
+    if (cat.includes('CarePack') || cat.startsWith('05.')) {
+      const pid = cv(row, 'productId');
+      if (!cpByProduct[pid]) cpByProduct[pid] = [];
+      cpByProduct[pid].push({ si, rowNum });
+      cpAllRows.push({ si, rowNum });
+    }
+  });
+  Object.entries(cpByProduct).forEach(([pid, rows]) => {
+    if (rows.length > 1) {
+      rows.forEach(({ si }) => {
+        if (!rowIssueMap[si]) rowIssueMap[si] = [];
+        rowIssueMap[si].push({ rule: 11, col: '제품카테고리', ci: ci.category, cur: '05.CarePack', msg: `제품고유번호 '${pid}' 내에 CarePack 행이 ${rows.length}개입니다. 1개만 허용됩니다.`, sug: null, fixable: false, sev: 'error' });
+      });
+    }
+  });
+  if (Object.keys(cpByProduct).length > 1 && cpAllRows.length > 0) {
+    const si = cpAllRows[0].si;
+    if (!rowIssueMap[si]) rowIssueMap[si] = [];
+    rowIssueMap[si].push({ rule: 11, col: '제품카테고리', ci: ci.category, cur: '05.CarePack', msg: `서로 다른 제품고유번호를 가진 CarePack이 ${Object.keys(cpByProduct).length}개입니다. 의도적 분리인지 담당자 확인이 필요합니다.`, sug: null, fixable: false, sev: 'warning' });
+  }
+
+  // 결과 조립
+  dataRows.forEach(({ row, si, rowNum }) => {
+    const issues = rowIssueMap[si] || [];
+    allRows.push({ rowNum, si, issues });
+  });
+
+  allRows.sort((a, b) => a.rowNum - b.rowNum);
+
+  let errors = 0, warnings = 0, passes = 0;
+  allRows.forEach(({ issues }) => {
+    if (issues.some(i => i.sev === 'error')) errors++;
+    else if (issues.some(i => i.sev === 'warning')) warnings++;
+    else passes++;
+  });
+
+  return { rows: allRows, summary: { total: allRows.length, errors, warnings, passes }, critical: null };
+}
+
+// ===================== UI =====================
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelector('.main').classList.toggle('main-wide', id === 's-results');
+}
+
+function setStep(n) {
+  [1,2,3].forEach(i => {
+    const el = document.getElementById('si' + i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    else if (i === n) el.classList.add('active');
+  });
+}
+
+function showActionBar(html) {
+  document.getElementById('action-bar').style.display = 'block';
+  document.getElementById('action-inner').innerHTML = html;
+}
+function hideActionBar() {
+  document.getElementById('action-bar').style.display = 'none';
+}
+
+function onFixInput(input) {
+  input.classList.toggle('filled', !!input.value);
+  const colIdx = input.dataset.ci;
+  const orig   = input.dataset.orig;
+  if (parseInt(colIdx) === ci.productName) return;
+  document.querySelectorAll('input.fix-input').forEach(other => {
+    if (other === input) return;
+    if (other.dataset.ci === colIdx && other.dataset.orig === orig) {
+      other.value = input.value;
+      other.classList.toggle('filled', !!other.value);
+    }
+  });
+}
+
+function updateBatchLabels() {
+  const groups = {};
+  document.querySelectorAll('input.fix-input').forEach(input => {
+    if (parseInt(input.dataset.ci) === ci.productName) return;
+    const key = input.dataset.ci + '||' + input.dataset.orig;
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(input);
+  });
+  Object.values(groups).forEach(inputs => {
+    if (inputs.length <= 1) return;
+    inputs.forEach(input => {
+      const lbl = document.createElement('div');
+      lbl.className = 'batch-label';
+      lbl.textContent = `동일한 오류 ${inputs.length}개 행에 일괄 적용됩니다`;
+      input.after(lbl);
+    });
+  });
+}
+
+function renderIssueDetail(issue, si) {
+  const canFix = issue.fixable && issue.sev === 'error';
+  const hasSug = issue.sug !== null && issue.sug !== undefined;
+  return `<div class="detail-issue ${issue.sev}">
+    <div class="di-header">
+      <span class="di-sev ${issue.sev}">${issue.sev === 'error' ? '오류' : '확인요청'}</span>
+      <span class="di-col">${esc(issue.col)}</span>
+      <span class="di-rule">규칙 ${issue.rule}</span>
+    </div>
+    <div class="di-body">
+      ${issue.cur && issue.cur !== '(비어있음)' ? `<div class="di-cur">현재 값: "${esc(issue.cur)}"</div>` : ''}
+      <div>${esc(issue.msg)}</div>
+      ${hasSug && canFix ? `<div class="di-suggest">→ 제안: "${esc(issue.sug)}"</div>` : ''}
+    </div>
+    ${canFix ? `<div class="di-fix">
+      <input class="fix-input ${hasSug ? 'filled' : ''}" type="text"
+        data-si="${si}" data-ci="${issue.ci}" data-orig="${esc(issue.cur)}"
+        value="${hasSug ? esc(issue.sug) : ''}"
+        placeholder="${hasSug ? '' : '수정값을 직접 입력하세요'}"
+        oninput="onFixInput(this)">
+    </div>` : (issue.sev === 'error' ? `<div class="di-no-fix">직접 엑셀 파일에서 수정 후 다시 업로드해 주세요.</div>` : '')}
+  </div>`;
+}
+
+function toggleRow(si) {
+  const detail = document.getElementById('detail-' + si);
+  if (!detail) return;
+  const isHidden = detail.style.display === 'none';
+  detail.style.display = isHidden ? 'table-row' : 'none';
+  const summary = detail.previousElementSibling;
+  if (summary) summary.classList.toggle('expanded', isHidden);
+}
+
+function renderResults(results) {
+  showScreen('s-results');
+  setStep(2);
+
+  // 치명 오류 (규칙 15)
+  const critArea = document.getElementById('critical-area');
+  if (results.critical) {
+    critArea.innerHTML = `<div class="critical-banner"><h3>🚫 양식 구조 오류 — 수정 불가</h3><p>${esc(results.critical)}</p></div>`;
+    document.getElementById('summary-bar').innerHTML = '';
+    document.getElementById('results-area').innerHTML = '';
+    showActionBar(`<button class="btn btn-outline" onclick="restart()">↩ 다시 업로드</button>`);
+    return;
+  } else {
+    critArea.innerHTML = '';
+  }
+
+  // 요약 배지
+  const s = results.summary;
+  document.getElementById('summary-bar').innerHTML = `
+    ${s.errors > 0 ? `<div class="badge b-error">❌ 오류 ${s.errors}행</div>` : ''}
+    ${s.warnings > 0 ? `<div class="badge b-warning">⚠️ 확인요청 ${s.warnings}행</div>` : ''}
+    <div class="badge b-pass">✅ 통과 ${s.passes}행</div>
+    <div class="badge b-total">전체 ${s.total}행</div>
+  `;
+
+  const area = document.getElementById('results-area');
+
+  if (s.total === 0) {
+    area.innerHTML = `<div class="all-pass"><div class="all-pass-icon">🎉</div><div class="all-pass-title">데이터 행이 없습니다</div><div class="all-pass-sub">파일에 입력된 데이터를 찾지 못했습니다.</div></div>`;
+    showActionBar(`<button class="btn btn-outline" onclick="restart()">↩ 다시 업로드</button>`);
+    return;
+  }
+
+  if (s.errors === 0 && s.warnings === 0) {
+    area.innerHTML = `<div class="all-pass"><div class="all-pass-icon">🎉</div><div class="all-pass-title">모든 항목이 규칙에 맞습니다!</div><div class="all-pass-sub">파일을 다운로드하여 비즈스퀘어에 제출하세요.</div></div>`;
+    showActionBar(`<button class="btn btn-success" onclick="doDownload()">📥 파일 다운로드</button>`);
+    return;
+  }
+
+  // 섹션 분리
+  const errorRows = results.rows.filter(r => r.issues.some(i => i.sev === 'error'));
+  const warnRows  = results.rows.filter(r => !r.issues.some(i => i.sev === 'error') && r.issues.some(i => i.sev === 'warning'));
+  const passRows  = results.rows.filter(r => r.issues.length === 0);
+
+  function buildRow({ rowNum, si, issues }) {
+    const hasError = issues.some(i => i.sev === 'error');
+    const errorCount = issues.filter(i => i.sev === 'error').length;
+    const warnCount  = issues.filter(i => i.sev === 'warning').length;
+    const rowClass = hasError ? 'row-error' : 'row-warning';
+
+    const row = sheetData[si];
+    const productName = cv(row, 'productName');
+    const vendor      = cv(row, 'vendor');
+    const baseYear    = cv(row, 'baseYear');
+
+    const isProductErr = issues.some(i => i.col === '제품명');
+    const isVendorErr  = issues.some(i => i.col === '벤더사' || i.col === '공급사명');
+    const isYearErr    = issues.some(i => i.col === '기본연도' || i.col === '리스사명');
+    const colList = [...new Set(issues.map(i => i.col))].join(' · ');
+
+    return `
+      <tr class="row-summary ${rowClass}" onclick="toggleRow(${si})">
+        <td class="col-rownum">${rowNum}</td>
+        <td class="col-status"><span class="sev-dot ${hasError ? 'error' : 'warning'}"></span></td>
+        <td class="col-product ${isProductErr ? 'cell-err' : ''}"><span class="cell-val">${esc(productName || '—')}</span></td>
+        <td class="col-vendor ${isVendorErr ? 'cell-err' : ''}"><span class="cell-val">${esc(vendor || '—')}</span></td>
+        <td class="col-year ${isYearErr ? 'cell-err' : ''}">${esc(baseYear || '—')}</td>
+        <td class="col-issues">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+            <div>
+              ${errorCount > 0 ? `<span class="issue-chip error">오류 ${errorCount}</span>` : ''}
+              ${warnCount  > 0 ? `<span class="issue-chip warning">확인 ${warnCount}</span>`  : ''}
+              <div class="issue-col-list">${esc(colList)}</div>
+            </div>
+            <span class="expand-icon">▾</span>
+          </div>
+        </td>
+      </tr>
+      <tr class="row-detail" id="detail-${si}" style="display:none">
+        <td colspan="6">
+          <div class="detail-panel">
+            ${issues.map(issue => renderIssueDetail(issue, si)).join('')}
+          </div>
+        </td>
+      </tr>`;
+  }
+
+  const thead = `<thead><tr>
+    <th class="col-rownum">행</th>
+    <th class="col-status"></th>
+    <th class="col-product">제품명</th>
+    <th class="col-vendor">벤더사</th>
+    <th class="col-year">기본연도</th>
+    <th class="col-issues">이슈 &nbsp;<span style="font-weight:500;opacity:0.6;text-transform:none;letter-spacing:0">클릭하여 상세보기</span></th>
+  </tr></thead>`;
+
+  let html = `<div class="results-table-wrap"><table class="results-table">${thead}<tbody>`;
+
+  if (errorRows.length > 0) {
+    html += `<tr class="section-divider-row error"><td colspan="6">❌ 수정 필요 — ${errorRows.length}개 행</td></tr>`;
+    html += errorRows.map(buildRow).join('');
+  }
+
+  if (warnRows.length > 0) {
+    html += `<tr class="section-divider-row warning"><td colspan="6">⚠️ 담당자 확인 필요 — ${warnRows.length}개 행</td></tr>`;
+    html += warnRows.map(buildRow).join('');
+  }
+
+  if (passRows.length > 0) {
+    html += `<tr class="section-divider-row pass"><td colspan="6">✅ 이상 없음 — ${passRows.length}개 행</td></tr>`;
+    passRows.forEach(({ rowNum, si }) => {
+      const row = sheetData[si];
+      html += `
+        <tr class="row-pass">
+          <td class="col-rownum" style="color:var(--green)">${rowNum}</td>
+          <td class="col-status"><span style="color:var(--green);font-size:14px;font-weight:700;">✓</span></td>
+          <td class="col-product"><span class="cell-val">${esc(cv(row, 'productName') || '—')}</span></td>
+          <td class="col-vendor"><span class="cell-val">${esc(cv(row, 'vendor') || '—')}</span></td>
+          <td class="col-year">${esc(cv(row, 'baseYear') || '—')}</td>
+          <td class="col-issues" style="color:var(--green);font-size:13px;font-weight:600;">이상 없음</td>
+        </tr>`;
+    });
+  }
+
+  html += `</tbody></table></div>`;
+  area.innerHTML = html;
+  updateBatchLabels();
+
+  // 액션 바
+  if (s.errors > 0) {
+    showActionBar(`
+      <button class="btn btn-outline" onclick="restart()">↩ 재업로드</button>
+      <button class="btn btn-primary" onclick="applyAndRevalidate()">🔄 수정 적용 및 재검증</button>
+    `);
+  } else {
+    showActionBar(`
+      <button class="btn btn-outline" onclick="applyAndRevalidate()">🔄 재검증</button>
+      <button class="btn btn-success" onclick="doDownload()">📥 파일 다운로드</button>
+    `);
+  }
+}
+
+// ===================== 파일 처리 =====================
+async function processFile(file) {
+  if (!file.name.endsWith('.xlsx')) {
+    document.getElementById('upload-error').textContent = '.xlsx 파일만 업로드할 수 있습니다.';
+    document.getElementById('upload-error').style.display = 'block';
+    return;
+  }
+
+  showScreen('s-loading');
+  hideActionBar();
+
+  await new Promise(r => setTimeout(r, 50)); // 로딩 화면 렌더링 대기
+
+  try {
+    originalBuffer = await file.arrayBuffer();
+    const wb = XLSX.read(originalBuffer, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    sheetData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    ci = buildCI(sheetData[0] || []);
+    accumulated = {};
+    lastResults = validate();
+    renderResults(lastResults);
+  } catch (e) {
+    showScreen('s-upload');
+    document.getElementById('upload-error').textContent = '파일을 읽는 중 오류가 발생했습니다. 올바른 .xlsx 파일인지 확인해 주세요.';
+    document.getElementById('upload-error').style.display = 'block';
+  }
+}
+
+function applyAndRevalidate() {
+  // 입력된 수정값 수집
+  document.querySelectorAll('input.fix-input').forEach(input => {
+    const val = input.value.trim();
+    const si = parseInt(input.dataset.si);
+    const colI = parseInt(input.dataset.ci);
+    if (isNaN(si) || isNaN(colI) || colI < 0) return;
+    if (!accumulated[si]) accumulated[si] = {};
+    accumulated[si][colI] = val;
+    // sheetData 업데이트
+    if (sheetData[si]) sheetData[si][colI] = val;
+  });
+
+  showScreen('s-loading');
+  hideActionBar();
+
+  setTimeout(() => {
+    lastResults = validate();
+    renderResults(lastResults);
+  }, 50);
+}
+
+function doDownload() {
+  const wb = XLSX.read(originalBuffer, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+
+  // 수정된 셀만 업데이트
+  Object.entries(accumulated).forEach(([siStr, cols]) => {
+    const r = parseInt(siStr);
+    Object.entries(cols).forEach(([cStr, val]) => {
+      const c = parseInt(cStr);
+      const addr = XLSX.utils.encode_cell({ r, c });
+      if (!ws[addr]) ws[addr] = {};
+      if (!isNaN(val) && val !== '') {
+        ws[addr].v = Number(val);
+        ws[addr].t = 'n';
+      } else {
+        ws[addr].v = val;
+        ws[addr].t = 's';
+      }
+      delete ws[addr].w;
+    });
+  });
+
+  const out = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'KOS_등록양식_수정완료.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  setStep(3);
+  showScreen('s-done');
+  hideActionBar();
+}
+
+function restart() {
+  originalBuffer = null;
+  sheetData = null;
+  ci = null;
+  accumulated = {};
+  lastResults = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('upload-error').style.display = 'none';
+  showScreen('s-upload');
+  setStep(1);
+  hideActionBar();
+}
+
+// ===================== 이벤트 =====================
+const dz = document.getElementById('dropzone');
+const fi = document.getElementById('fileInput');
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('over');
+  if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+});
+fi.addEventListener('change', e => {
+  if (e.target.files[0]) processFile(e.target.files[0]);
+});
+</script>
+</body>
+</html>
